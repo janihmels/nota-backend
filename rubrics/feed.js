@@ -16,7 +16,7 @@ export const get = async (parameters, cb) => {
     plan = resultUser.plan;
   }
 
-  const feed = await getCollection("articles").find({ userUid }).toArray();
+  const feed = await getCollection("pages").find({ userid: userUid }).toArray();
   if (feed) {
     console.log("Feed", feed);
   }
