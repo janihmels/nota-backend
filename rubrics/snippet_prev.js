@@ -1,14 +1,16 @@
 import md5 from "md5";
-import { ChatGPTAPI } from "chatgpt";
-
+import pkg from "openai";
+const { OpenAIApi, Configuration } = pkg;
 // ----------------------------------------------
 import CONST from "../Config/const.js";
 import { getCollection } from "../Aux/db.js";
 // ----------------------------------------------
-const api = new ChatGPTAPI({
+const configuration = new Configuration({
   apiKey: CONST.OPENAI_API_KEY,
 });
-
+const openai = new OpenAIApi(configuration);
+const openAIModel = "text-davinci-003";
+//const openAIModel = "gpt-3.5-turbo";
 // ----------------------------------------------
 // ----------------------------------------------
 export const reply = async (parameters, cb) => {
@@ -27,17 +29,30 @@ export const reply = async (parameters, cb) => {
   console.log("Snippet analysis", mode, uri, userid);
   if (prompts.hasOwnProperty(mode)) {
     const prompt = prompts[mode](snippet);
-    const res = await api.sendMessage(prompt);
-
-    if (res.text) {
-      reply = res.text;
-      increment = res.detail.usage.total_tokens;
+    const response = await openai.createCompletion({
+      model: openAIModel,
+      prompt,
+      temperature: 0.5,
+      max_tokens: 300,
+      top_p: 0.3,
+      frequency_penalty: 0.5,
+      presence_penalty: 0,
+    });
+    if (response.data && response.data.choices.length) {
+      reply = response.data.choices[0].text.trim();
+      increment = response.data.usage.total_tokens;
     }
   }
 
 
+  /*const uri = "Moinsen Freunde";
+  const pageTitle = "Moinsen Headline";
+  const reply = "Moinsen Reply";
+  const userid = "Moinsen User";*/
+
   const collection = getCollection("pages");
-  const hash = md5(uri);  
+  const hash = md5(uri);
+  
   await collection.updateOne(
     { userid, hash },
     {
@@ -58,7 +73,6 @@ export const reply = async (parameters, cb) => {
   );
   await incMeter(userid, increment);
   cb({ reply });
-  //cb( {reply: "Moinsen Reply"});
 };
 
 // ----------------------------------------------
